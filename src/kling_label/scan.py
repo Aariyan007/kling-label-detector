@@ -68,10 +68,11 @@ def scan_file(f, block_size=1024 * 1024):
 
 def _scan_buffer(buf, base):
     hits = []
-    m = _JSON_RE.search(buf)
+    # Fast check first: the regexes are slow on binary data such as video.
+    m = b'"ProduceID"' in buf and _JSON_RE.search(buf)
     if m:
         hits.append(Hit("json", base + m.start(), m.group().decode("utf-8", errors="replace")))
-    xmp = _first_xmp(buf)
+    xmp = b"AIGC" in buf and _first_xmp(buf)
     if xmp:
         hits.append(Hit("xmp", base + xmp[0], xmp[1]))
     return min(hits, key=lambda h: h.offset, default=None)
