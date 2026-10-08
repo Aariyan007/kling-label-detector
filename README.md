@@ -1,8 +1,70 @@
 # kling-label-detector
 
-Reverse-engineering the hidden "AI-generated" label that Kling AI puts in its images, and (next) a small detection-only tool that reads it.
+Reverse-engineering the hidden "AI-generated" label that Kling AI puts in its images and videos, plus `kling-label`, a small detection-only tool that reads it.
 
-Status: **research findings published, tool in design.** The detailed write-up is in [FINDINGS.md](FINDINGS.md).
+Status: **research findings published, `kling-label` v0.1 ready.** The detailed write-up is in [FINDINGS.md](FINDINGS.md).
+
+## Install
+
+Needs Python 3.10 or newer. No other packages.
+
+```
+pipx install git+https://github.com/Aariyan007/kling-label-detector
+```
+
+or, from a copy of this repository:
+
+```
+pip install .
+```
+
+## Usage
+
+```
+$ kling-label image.png
+File:     image.png (PNG, 1536x2720)
+Result:   KLING LABEL FOUND (AI-generated)
+Where:    PNG text chunk "AIGC" (China GB 45438-2025 format)
+  Label             1  (= AI-generated)
+  ContentProducer   kling
+  ProduceID         SGP_PROD_ai_web_300000000123456
+    region SGP · system PROD · made on ai_web
+    made at 2026-01-10 07:01:59 UTC (decoded from ID)
+  ContentPropagator kling
+Privacy:  this ID reveals when the image was made.
+```
+
+(The ID above is made up.)
+
+- **Several files:** `kling-label a.png b.mp4 c.jpg` prints one block per file.
+- **JSON:** `kling-label --json a.png` prints a list with one object per file: `result`, `format`, `width`, `height`, `found_by`, `where`, the raw `label`, the `decoded` ID and producer, and any `warnings`.
+- **Exit code:** `0` every file has a label, `1` at least one file has none, `2` a file could not be read.
+
+What the result lines mean:
+
+| Result | Meaning |
+|--------|---------|
+| `KLING LABEL FOUND` | The file has the GB 45438-2025 label and it comes from Kling. |
+| `AI LABEL FOUND (... producer is not Kling)` | The file has the same kind of label, but from another service. |
+| `AIGC LABEL FOUND, BUT ITS CONTENT COULD NOT BE READ` | An `AIGC` entry exists but is not valid label JSON. |
+| `NO KLING LABEL FOUND` | No label. **This does not mean the file is human-made.** Screenshots, re-saves and chat apps remove the label, and there is no pixel watermark to fall back on. |
+
+### Where the tool looks
+
+1. PNG text chunks named `AIGC` (`tEXt`, where Kling puts it today, and also `zTXt` and `iTXt`).
+2. MP4 / MOV metadata: the `mdta` key `AIGC` in any `meta` box under `moov`.
+3. XMP metadata: an `AIGC` field, which GB 45438-2025 also allows.
+4. Fallback for every file type (JPEG, WebP, unknown): a raw byte scan for the label JSON.
+
+The tool only reads files. It never changes them.
+
+### Run the tests
+
+```
+python -m unittest
+```
+
+The tests build their own fake PNG, MP4 and JPEG files in memory with made-up IDs. No sample files are needed.
 
 ## Background
 
@@ -34,6 +96,6 @@ See [FINDINGS.md](FINDINGS.md) for method, evidence and limits.
 - [x] Locate and decode the implicit label
 - [x] Test for a pixel watermark
 - [x] Decode the `ProduceID` time field
-- [ ] `kling-label` command-line tool (reads a file, reports the label and decoded fields)
+- [x] `kling-label` command-line tool (reads a file, reports the label and decoded fields)
 - [x] Video (MP4) label location
 - [ ] Mobile-app samples

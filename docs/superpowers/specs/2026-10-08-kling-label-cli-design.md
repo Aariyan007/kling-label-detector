@@ -66,6 +66,7 @@ the file name):
 |------|----------------------|-------------|
 | PNG | 8-byte PNG signature | yes |
 | MP4 / MOV | box type `ftyp` (or `moov`, `mdat`, `free`, `wide`) at byte 4 | yes (same box format) |
+| HEIF / AVIF | `ftyp` with brand `heic`, `mif1`, `avif`, ... | MP4 walker, then raw scan |
 | JPEG, WebP, GIF, unknown | other magic bytes | no, raw scan only |
 
 Then, in order, it stops at the first place that has a label:
@@ -170,10 +171,16 @@ Rules for the parsers:
 - Never load a whole video: jump from header to header with `seek`; read only
   small boxes and text chunks into memory (limit 16 MiB each).
 - Check every length. A file that ends early gives a warning, and whatever
-  was found before the cut is still reported. A file whose first bytes are
-  wrong for its type gives an `error` result, never a crash.
+  was found before the cut is still reported (but never a half-read value).
+  A file whose first bytes match no known type is treated as `unknown` and
+  gets the raw scan. Only a missing, unreadable or empty file gives an
+  `error` result. No input may crash the tool.
 - A wrong PNG CRC on a text chunk gives a warning; the chunk is still read.
 - Read-only: files are opened with `"rb"` only.
+- Text from a file is printed with control characters escaped, so a file
+  cannot send commands to the terminal.
+- The raw scan only runs its regexes on blocks that contain `"ProduceID"`
+  or `AIGC`, so a large video without a label is checked quickly.
 
 ## 7. Tests (part 3)
 
@@ -182,8 +189,8 @@ Written first (TDD) with `unittest`; all test files are built in memory by
 No image or video files are stored in git.
 
 - PNG: label in `tEXt`; in `zTXt`; in `iTXt` (plain and compressed); in XMP;
-  after `IDAT`; no label; bad signature; file cut in the middle of a chunk;
-  wrong CRC; size from IHDR.
+  after `IDAT`; no label; damaged signature (still found by raw scan); file
+  cut in the middle of a chunk; wrong CRC; size from IHDR.
 - MP4: label present (ISO and QuickTime `meta`); only an `encoder` key; meta
   inside `trak`; 64-bit box size; cut-off box; size from `tkhd`.
 - Raw scan: JPEG with the JSON in a comment segment; JPEG with XMP; label
