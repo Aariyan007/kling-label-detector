@@ -1,0 +1,6 @@
+.venv/
+samples/
+.DS_Store
+sample-log.md
+notes/figures/
+refs/
