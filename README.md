@@ -28,8 +28,8 @@ Where:    PNG text chunk "AIGC" (China GB 45438-2025 format)
   Label             1  (= AI-generated)
   ContentProducer   kling
   ProduceID         SGP_PROD_ai_web_300000000123456
-    region SGP · system PROD · made on ai_web
-    made at 2026-01-10 07:01:59 UTC (decoded from ID)
+    region SGP · system PROD · made on ai_web · worker 123
+    made at 2026-01-10 07:01:59.456 UTC (decoded from ID, ±1 s)
   ContentPropagator kling
 Privacy:  this ID reveals when the image was made.
 ```
@@ -80,7 +80,7 @@ Kling (by Kuaishou) is one of the most used AI image and video generators. This 
 1. **The hidden label is plain file metadata.** Every Kling PNG tested since the rules took effect carries a PNG `tEXt` chunk named `AIGC` holding JSON with the GB 45438 fields `Label`, `ContentProducer`, `ProduceID`, `ContentPropagator`, `PropagateID`, `ReservedCode1` and `ReservedCode2`. Videos carry the same JSON in the MP4 `moov/udta/meta` box under the key `AIGC`.
 2. **There is no invisible pixel watermark.** A noise-residual (PRNU-style) analysis of 24 images, plus two near-uniform images whose interiors were 100% one value in the red and green channels, found no hidden pixel pattern, and Google SynthID Detector, Adobe TrustMark, Meta Watermark Anything and Stable Diffusion's `invisible-watermark` all found nothing. A screenshot, re-save or chat-app upload therefore removes the only machine-readable label.
 3. **`ProduceID` leaks the creation time to the second.** The numeric part of `ProduceID` is `seconds × 10^6 + 6 more digits`, where the seconds count from 2016-07-09 01:41:59 UTC. Five images generated at measured times all matched within 0.45 s.
-4. **The model decides the producer format.** IMAGE 2.1 and VIDEO 3.0 write `ContentProducer: "kling"`. IMAGE 3.0 writes `0011` + an 18-character Chinese Unified Social Credit Code (valid checksum, registered in Haidian District, Beijing) + `10100`. The same account produced both formats.
+4. **The model decides the producer format.** IMAGE 2.1 and VIDEO 3.0 write `ContentProducer: "kling"`. IMAGE 3.0 writes `0011` + `91110108335469089C` + `10100`, where the middle part is the Chinese Unified Social Credit Code of Beijing Kuaishou Technology Co., Ltd., Kling's developer. The same account produced both formats.
 5. **2K images appear to be 2x-upscaled 1K images.** 1K output is 768x1360 and 2K output is exactly 1536x2720. A period-2 pixel grid found in the noise analysis matches this.
 
 See [FINDINGS.md](FINDINGS.md) for method, evidence and limits.

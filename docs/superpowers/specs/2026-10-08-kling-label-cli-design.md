@@ -20,8 +20,8 @@ Where:    PNG text chunk "AIGC" (China GB 45438-2025 format)
   Label             1  (= AI-generated)
   ContentProducer   kling
   ProduceID         SGP_PROD_ai_web_300000000123456
-    region SGP · system PROD · made on ai_web
-    made at 2026-01-10 07:01:59 UTC (decoded from ID)
+    region SGP · system PROD · made on ai_web · worker 123
+    made at 2026-01-10 07:01:59.456 UTC (decoded from ID, ±1 s)
   ContentPropagator kling
 Privacy:  this ID reveals when the image was made.
 ```
@@ -99,8 +99,9 @@ Pattern: `<REGION>_<SYSTEM>_<client>_<15 digits>`, for example
 `SGP_PROD_ai_web_300000000123456`.
 
 - `created_unix = 1468028519 + digits // 1_000_000`, printed as UTC.
-- The last 6 digits are kept in JSON as `extra_digits`; their meaning is
-  unconfirmed, so the text output does not explain them.
+- The last 6 digits are a 3-digit worker number (`worker`, hypothesis) and
+  milliseconds (`milliseconds`, strongly supported). JSON also gives
+  `created_utc_ms`; `extra_digits` is kept for compatibility.
 - An ID with another shape is printed as it is, with no decoding.
 
 ### `ContentProducer`

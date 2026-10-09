@@ -15,6 +15,19 @@ class DecodeProduceIdTest(unittest.TestCase):
         self.assertEqual(d["created_unix"], 1468028519 + 300000000)
         self.assertEqual(d["created_utc"], "2026-01-10T07:01:59Z")
 
+    def test_worker_and_milliseconds(self):
+        d = decode_produce_id(FAKE_ID)
+        self.assertEqual(d["worker"], "123")
+        self.assertEqual(d["milliseconds"], 456)
+        self.assertEqual(d["created_utc_ms"], "2026-01-10T07:01:59.456Z")
+
+    def test_millisecond_rollover_keeps_order(self):
+        a = decode_produce_id("SGP_PROD_ai_web_300000000526998")
+        b = decode_produce_id("SGP_PROD_ai_web_300000001527003")
+        self.assertEqual((a["milliseconds"], b["milliseconds"]), (998, 3))
+        self.assertLess(a["created_utc_ms"], b["created_utc_ms"])
+        self.assertEqual(b["created_utc_ms"], "2026-01-10T07:02:00.003Z")
+
     def test_other_client_name(self):
         d = decode_produce_id("SGP_PROD_ai_app_300000001999000")
         self.assertEqual(d["client"], "ai_app")

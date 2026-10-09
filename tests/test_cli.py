@@ -42,8 +42,8 @@ class CliTest(unittest.TestCase):
             "  Label             1  (= AI-generated)\n"
             "  ContentProducer   kling\n"
             f"  ProduceID         {FAKE_ID}\n"
-            "    region SGP · system PROD · made on ai_web\n"
-            "    made at 2026-01-10 07:01:59 UTC (decoded from ID)\n"
+            "    region SGP · system PROD · made on ai_web · worker 123\n"
+            "    made at 2026-01-10 07:01:59.456 UTC (decoded from ID, ±1 s)\n"
             "  ContentPropagator kling\n"
             "Privacy:  this ID reveals when the image was made.\n"
         ))
