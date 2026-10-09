@@ -126,13 +126,21 @@ A third-party "AI image detector" website rated a Kling image 99% AI. Such sites
 | 49 non-Kling control files (25 JPEG, 24 PNG) | 0/49 false positives |
 | 6 timed samples | every decoded creation time fell inside its measured click window (within 1 s) |
 
-## 8. Not yet tested
+## 8. Official detector behaviour and further tests (2026-10-09, later)
+
+- **Kling's detector does not recognise IMAGE 3.0 labels.** Its `AIGC_METADATA` check returned `DETECTED` for files whose producer is `kling` (IMAGE 2.1 original, Inpaint output) and `NOT_DETECTED` for 2 of 2 untouched IMAGE 3.0 originals, whose producer is the USCC form. JPEG copies return `UNSUPPORTED`.
+- **The `BLIND_WATERMARK` check never produced a result:** `FAILED` on all 15 image submissions and the video, including tasks that otherwise completed.
+- **Edit tools regenerate everything.** Kling Inpaint and Expand, run on our own test image, re-create the whole image at 1024x1344, so a "same edit twice" comparison cannot isolate a watermark. In flat regions, three of four Inpaint outputs were nearly identical (about 1% of pixels differ), so no per-output code is added to flat areas.
+- **Second video:** a VIDEO 3.0 Omni clip (May 2026, downloaded as MOV) carries the same `kling-ai` H.264 SEI marker but no `AIGC` container key. The SEI marker is present in 2 of 2 post-rules videos.
+- **Second-order (payload) test, 54 textured IMAGE 3.0 images:** no shared fixed pattern (z = +0.1); a small excess in pairwise correlation spread (+11.8%, z = +3.0). The same test on non-Kling control photos (which include burst shots and screenshots) shows a far larger excess, so the method reacts strongly to shared layout and content. The Kling excess is therefore not evidence of a watermark.
+
+## 9. Not yet tested
 
 - Kling mobile app output (does the client field read something other than `ai_web`?)
 - The mainland-China service (可灵), JPEG or MOV downloads, and paid watermark-free downloads
 - Whether `ContentProducer` changes for other features (edit, expand, upscale, multi-reference)
 - Whether the worker pools (300s vs 500s) map to data centres or service types
 
-## 9. Ethics
+## 10. Ethics
 
 This work is detection-only. It reads and explains a label; it does not provide tools or steps to remove, forge or alter labels, and doing so may violate the labeling rules and Kling's terms. Only the author's own generations were analyzed.
