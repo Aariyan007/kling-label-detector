@@ -134,6 +134,8 @@ A third-party "AI image detector" website rated a Kling image 99% AI. Such sites
 - **Second video:** a VIDEO 3.0 Omni clip (May 2026, downloaded as MOV) carries the same `kling-ai` H.264 SEI marker but no `AIGC` container key. The SEI marker is present in 2 of 2 post-rules videos.
 - **Second-order (payload) test, 54 textured IMAGE 3.0 images:** no shared fixed pattern (z = +0.1); a small excess in pairwise correlation spread (+11.8%, z = +3.0). The same test on non-Kling control photos (which include burst shots and screenshots) shows a far larger excess, so the method reacts strongly to shared layout and content. The Kling excess is therefore not evidence of a watermark.
 
+- **Latent-noise test (Colab, public Stable Diffusion 1.5 inversion):** a self-made Tree-Ring-style positive control was detected (p = 0.0011), while 40 Kling IMAGE 3.0 images scored like clean images (p = 0.57). No generation-time ring watermark is visible through a public model; a mark readable only with Kling's own model remains possible. Details: docs/watermark-hunt-results-2026-10-09.md.
+
 ## 9. Not yet tested
 
 - Kling mobile app output (does the client field read something other than `ai_web`?)

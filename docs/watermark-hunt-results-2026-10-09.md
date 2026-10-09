@@ -48,6 +48,19 @@ None of the three leads in the research note belongs to Kuaishou:
 - US 11,869,112: Huawei (3D-model watermarking).
 - CN110322386A: China Mobile (text watermarking).
 
+## Step 6: latent-noise (generation-time) test in Colab
+
+Notebook: `forensics/latent_watermark_test.ipynb` (run on a free Colab T4). Images are run backwards (50-step DDIM inversion) through public Stable Diffusion 1.5, and the recovered starting noise is scored for Tree-Ring-style ring structure in its Fourier transform (lower score = more ring-like). Inputs were 512x512 centre crops, pixels only.
+
+| Group | n | Ring score median | p vs SD clean (one-sided) |
+|-------|--:|------------------:|--------------------------:|
+| SD 1.5 clean | 6 | 0.416 | - |
+| SD 1.5 with our own Tree-Ring-style key (positive control) | 6 | 0.258 | **0.0011** |
+| Gemini (SynthID; not a latent mark) | 15 | 0.408 | 0.52 |
+| Kling IMAGE 3.0 | 40 | 0.410 | 0.57 |
+
+**Verdict:** the positive control passes, and Kling looks like clean images. No Tree-Ring-type latent mark is visible through a public model. Limits: the control was made with the same model used for inversion (the easy case), Kling uses its own model, and images were resized to 512 px, so a mark readable only with Kling's own model is not ruled out. The Gaussian-distance column did not react even to the control and is not informative.
+
 ## Overall
 
-No public method tested here finds a watermark in Kling images or videos. This rules out QIM blind watermarks and the public RivaGAN weights. It does not rule out an in-house keyed or learned watermark; only Kling's own detector (plan step 5) can settle that.
+No public method tested here finds a watermark in Kling images or videos. This rules out QIM blind watermarks, the public RivaGAN weights and a Tree-Ring-type latent mark visible through a public model. It does not rule out an in-house keyed or learned watermark; only Kling's own detector (plan step 5) can settle that.
