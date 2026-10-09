@@ -40,7 +40,10 @@ Shape: `SGP_PROD_ai_web_` + 15 digits.
 - **Seconds counter (confirmed):** `floor(digits / 10^6)` is the number of seconds since **2016-07-09 01:41:59 UTC** (Unix time 1468028519).
   - Evidence: the five timed images give implied start times whose overlap is only 0.45 s wide (Unix 1468028518.78 to 1468028519.23). The timed video falls inside the same window.
   - Round 1 (no timing) agrees: across 24 images over 14 minutes, the counter rose 1.056 units per second of download time.
-- **The last 6 digits (hypothesis):** the next 3 digits took values 300 to 318 and 500 to 527, which looks like a server or worker number. The last 3 digits were close together within one batch and appeared to wrap after 999, which looks like a sequence counter.
+- **The last 6 digits = 3-digit worker + 3-digit milliseconds.**
+  - **Milliseconds (strong evidence):** across 36 images, the last 3 digits of images from one batch fall within 15 of each other and rise in creation order. One four-image batch reads `.992`, `.994`, `.998` and then `.003` exactly as the seconds field ticks up by one. This is a millisecond rollover, not a wrapping counter.
+  - **Worker (hypothesis):** the middle 3 digits differ for every image in a batch and took only values 300 to 318 and 500 to 527. Two pools of about 20 workers each fit this. The pool was not tied to model or account.
+  - So the full creation time is `seconds.milliseconds`. With up to 2 s of server delay allowed after each click, the counter start lies between 2016-07-09 01:41:58.07 and 01:42:00.52 UTC (01:41:58.07 to 01:41:58.52 if there is no delay). Decoded times are accurate to about 1 second.
 
 **Consequence:** anyone holding an original Kling file can read when it was generated, to the second:
 
@@ -98,13 +101,25 @@ A third-party "AI image detector" website rated a Kling image 99% AI. Such sites
 
 2K is exactly twice 1K, which suggests the 2K output is a 2x upscale. This matches the period-2 grid in the spectrum. A plain-white 2K image also shows tile seams consistent with tiled upscaling.
 
-## 7. Not yet tested
+## 7. Tool validation on real files
+
+`kling-label` v0.1 was built in a cloud session using only synthetic test files, then run locally on the real samples:
+
+| Input | Result |
+|-------|--------|
+| 36 Kling PNGs (IMAGE 2.1 and 3.0, two accounts) | 36/36 label found |
+| New VIDEO 3.0 MP4 | label found (`moov/udta/meta`) |
+| VIDEO 1.5 MP4 from before the rules | correctly reported as no label |
+| 49 non-Kling control files (25 JPEG, 24 PNG) | 0/49 false positives |
+| 6 timed samples | every decoded creation time fell inside its measured click window (within 1 s) |
+
+## 8. Not yet tested
 
 - Kling mobile app output (does the client field read something other than `ai_web`?)
 - The mainland-China service (可灵), JPEG or MOV downloads, and paid watermark-free downloads
 - Whether `ContentProducer` changes for other features (edit, expand, upscale, multi-reference)
-- The meaning of the 6 digits after the seconds field
+- Whether the worker pools (300s vs 500s) map to data centres or service types
 
-## 8. Ethics
+## 9. Ethics
 
 This work is detection-only. It reads and explains a label; it does not provide tools or steps to remove, forge or alter labels, and doing so may violate the labeling rules and Kling's terms. Only the author's own generations were analyzed.
