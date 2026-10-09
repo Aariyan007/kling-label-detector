@@ -47,7 +47,7 @@ What the result lines mean:
 | `KLING LABEL FOUND` | The file has the GB 45438-2025 label and it comes from Kling. |
 | `AI LABEL FOUND (... producer is not Kling)` | The file has the same kind of label, but from another service. |
 | `AIGC LABEL FOUND, BUT ITS CONTENT COULD NOT BE READ` | An `AIGC` entry exists but is not valid label JSON. |
-| `NO KLING LABEL FOUND` | No label. **This does not mean the file is human-made.** Screenshots, re-saves and chat apps remove the label, and there is no pixel watermark to fall back on. |
+| `NO KLING LABEL FOUND` | No label. **This does not mean the file is human-made.** Screenshots, re-saves and chat apps remove the label. Kling documents an invisible watermark, but this tool does not read pixels, and that watermark has not been independently verified. |
 
 ### Where the tool looks
 
