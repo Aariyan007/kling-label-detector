@@ -70,7 +70,7 @@ The same account produced both formats, so **the model, not the account, decides
 
 The 18-character middle part passes the check-digit algorithm of the Chinese **Unified Social Credit Code** (GB 32100-2015). It is the only 18-character window in the string that does. Its prefix `91` marks an enterprise, and `110108` is the administrative code for Haidian District, Beijing. **The code belongs to Beijing Kuaishou Technology Co., Ltd. (北京快手科技有限公司)**, Kling's developer, founded 2015-03-20. Search-engine indexes of two Chinese company-registry sites (Shuidi and Qichacha) list `91110108335469089C` as that company's taxpayer ID, together with organization code `33546908-9`. That organization code is embedded in the USCC itself (characters 9 to 17 = `335469089`), so the two identifiers agree. The registry sites themselves block visitors from outside mainland China, so this was confirmed through their indexed pages rather than the official GSXT registry. The `0011` prefix and `10100` suffix are presumably fields of the TC260 producer-code scheme; their meaning was not confirmed.
 
-## 5. No invisible pixel watermark
+## 5. Pixel watermark: none found by our tests, but officially claimed (inconclusive)
 
 Full method and numbers are in [notes/2026-10-09-pixel-spike.md](notes/2026-10-09-pixel-spike.md). Summary:
 
@@ -98,7 +98,11 @@ Full method and numbers are in [notes/2026-10-09-pixel-spike.md](notes/2026-10-0
 
 A third-party "AI image detector" website rated a Kling image 99% AI. Such sites are classifiers that judge how an image looks; they do not read watermarks, so this does not indicate a hidden mark.
 
-**Consequence:** the `AIGC` metadata is the only machine-readable label. Any screenshot, re-encode or metadata-stripping upload removes it, and the file then carries no trace of the label. This is a property of the labeling design, not a removal method.
+**Official claim (added after the tests above):** Kling's [AI Content Detection](https://kling.ai/docs/ai-content-detection) page states that "an imperceptible watermark and metadata are embedded in images and videos" and stay traceable "through compression, editing, and resharing". Its detector (kling.ai/detection) runs two checks, `AIGC_METADATA` and `BLIND_WATERMARK`. On 2026-10-09 every image submission (including an untouched original) returned `FAILED` for both checks; the VIDEO 3.0 file returned metadata `Detected` and blind watermark `FAILED`.
+
+**Consequence:** the `AIGC` metadata is the only label we could verify in images. Our tests rule out common schemes and any mark in flat regions, but not a keyed mark embedded only in textured regions, so whether pixels alone identify a Kling image remains open. See [docs/forensic-audit-2026-10-09.md](docs/forensic-audit-2026-10-09.md).
+
+**Video bitstream marker:** the VIDEO 3.0 file also contains one H.264 SEI `user_data_unregistered` message (UUID `91ca6061-4aee-3854-8614-2d5f73f4ae2e`, payload `kling-ai`) inside the coded video. The 2025 video has none.
 
 ## 6. Image sizes and upscaling
 
