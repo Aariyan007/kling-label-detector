@@ -12,6 +12,15 @@ Usage (from the repository root, with Pillow, NumPy and SciPy installed):
     python forensics/audit.py texture     # fixed pattern in textured regions only, with and without the grid
     python forensics/audit.py samples     # sample-level CSV with hashes (written to git-ignored samples/)
 
+Targeted watermark hunt (forensics/wmhunt.py; also needs opencv-python-headless, PyWavelets,
+onnxruntime and invisible-watermark; see docs/watermark-hunt-plan.md):
+    python forensics/audit.py controls    # positive controls on synthetic images (run first)
+    python forensics/audit.py qim         # key-free QIM lattice scan (DWT-DCT-SVD "blind watermark" family)
+    python forensics/audit.py decoders    # RivaGAN / StegaStamp / HiDDeN, fixed-message test vs controls
+    python forensics/audit.py video       # VideoSeal, RivaGAN and QIM on video frames
+Options for qim, decoders and video: --kling GLOB, --control GLOB (repeatable), --limit N.
+These commands print scores and indices only: no file names, IDs or decoded messages.
+
 Sample folders are local only (samples/ is git-ignored):
     samples/kling_*.png, samples/round2/*.png   Kling outputs (normal and plain)
     samples/round3/*.png, samples/round4/*.png  plain IMAGE 3.0 outputs
@@ -473,8 +482,139 @@ def cmd_payload():
           f"(sd {np.std(null):.1e}); z = {z:+.1f}")
 
 
+# ---------------------------------------------------------------- targeted watermark hunt
+KLING_TEXTURED = sorted(glob.glob("samples/round5/*.png"))
+CONTROL_JPEG = sorted(f for f in CONTROL_ALL if f.lower().endswith((".jpg", ".jpeg")))
+KLING_VIDEOS = VIDEOS + sorted(glob.glob("samples/**/*.mov", recursive=True))
+CONTROL_VIDEOS = sorted(glob.glob("samples/control_video/*"))
+
+
+def hunt_options(argv):
+    """--kling GLOB / --control GLOB (repeatable) replace the default groups; --limit N caps each group."""
+    opts = {"kling": [], "control": [], "limit": 40}
+    i = 0
+    while i < len(argv):
+        if argv[i] in ("--kling", "--control"):
+            opts[argv[i][2:]] += sorted(glob.glob(argv[i + 1], recursive=True)); i += 2
+        elif argv[i] == "--limit":
+            opts["limit"] = int(argv[i + 1]); i += 2
+        else:
+            raise SystemExit(f"unknown option {argv[i]}")
+    return opts
+
+
+def hunt_groups(opts, kling_default, control_default):
+    import os
+    kling = {"Kling (--kling)": opts["kling"]} if opts["kling"] else kling_default
+    control = {"Control (--control)": opts["control"]} if opts["control"] else control_default
+    def cut(groups):
+        groups = {k: [f for f in v if os.path.isfile(f)][: opts["limit"]] for k, v in groups.items()}
+        return {k: v for k, v in groups.items() if v}
+    kling, control = cut(kling), cut(control)
+    if not kling:
+        raise SystemExit("no Kling sample files found (samples/ is local only; or pass --kling GLOB)")
+    return kling, control
+
+
+def wmhunt_module():
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import wmhunt
+    return wmhunt
+
+
+def cmd_controls():
+    """Positive and negative controls for every hunt detector, on synthetic images only."""
+    import tempfile
+    wm = wmhunt_module()
+    with tempfile.TemporaryDirectory() as tmp:
+        for r in wm.run_all_controls(tmp):
+            print(f"   {r['status']:8s} {r['control']:44s} {r.get('flagged', ''):4s} {r['detail']}")
+
+
+def cmd_qim(argv):
+    """Key-free scan for quantization-index-modulation lattices (the DWT-DCT-SVD blind-watermark family)."""
+    wm = wmhunt_module()
+    kling, control = hunt_groups(hunt_options(argv), {
+        "Kling normal": KLING_NORMAL, "Kling IMAGE 3.0 textured": KLING_TEXTURED, "Kling plain": PLAIN[:20]},
+        {"Control PNG": CONTROL_PNG, "Control JPEG": CONTROL_JPEG})
+    print(f"== QIM lattice scan (flag: score >= {wm.QIM_FLAG_SCORE:.0f} with contrast >= {wm.QIM_MIN_CONTRAST:.0f}, "
+          "no JPEG history). Run 'controls' first.")
+    for name, files in {**kling, **control}.items():
+        reps = [wm.qim_report(wm.load_rgb(f)) for f in files]
+        flagged = [r for r in reps if r["flag"]]
+        scores = [r["score"] for r in reps]
+        print(f"   {name:26s} n={len(reps):3d}  flagged {len(flagged):3d}  JPEG history {sum(r['jpeg_history'] for r in reps):3d}  "
+              f"score median {np.median(scores):7.1f} max {max(scores):8.1f}")
+        for i, r in enumerate(reps):
+            if r["score"] > 0:
+                print(f"      #{i:<3d} score {r['score']:8.1f}  step {r['step']:6.2f}  contrast {r['contrast']:6.1f}  {r['feature']}"
+                      f"{'  (JPEG history)' if r['jpeg_history'] else ''}")
+
+
+def cmd_decoders(argv):
+    """Do Kling images share one message under a public neural watermark decoder? Compared with PNG controls."""
+    wm = wmhunt_module()
+    kling, control = hunt_groups(hunt_options(argv), {
+        "Kling normal": KLING_NORMAL, "Kling IMAGE 3.0 textured": KLING_TEXTURED},
+        {"Control PNG": CONTROL_PNG})
+    ref_files = [f for files in control.values() for f in files]
+    for make in (wm.RivaGan, wm.stegastamp, wm.hidden):
+        try:
+            model = make()
+        except wm.Unavailable as e:
+            print(f"== {getattr(make, 'name', make.__name__)}: SKIPPED ({e})"); continue
+        ctl = wm.control_decoder(model)
+        print(f"== {model.name} ({model.nbits} bits). Positive control: {ctl['status']} - {ctl['detail']}")
+        ref = [model.decode(wm.load_rgb(f)) for f in ref_files]
+        null = wm.null_split(ref)
+        print(f"   null (control half vs half)  agreement {null['agreement']:.2f}  T {null['T']:5.1f}  (n={len(ref)})")
+        for name, files in kling.items():
+            st = wm.decoder_stats([model.decode(wm.load_rgb(f)) for f in files], ref)
+            print(f"   {name:28s} agreement {st['agreement']:.2f}  T {st['T']:5.1f}  (n={st['n']})")
+
+
+def cmd_video(argv):
+    """VideoSeal detection bit, RivaGAN fixed-message test and QIM scan on frames of Kling and control videos."""
+    wm = wmhunt_module()
+    opts = hunt_options(argv)
+    kling, control = hunt_groups(opts, {"Kling video": KLING_VIDEOS}, {"Control video": CONTROL_VIDEOS})
+    try:
+        vs = wm.VideoSeal()
+        print(f"== VideoSeal positive control: {wm.control_videoseal()['detail']}")
+    except wm.Unavailable as e:
+        vs = None
+        print(f"== VideoSeal: SKIPPED ({e})")
+    riva = wm.RivaGan()
+    scores = {}
+    for name, files in {**kling, **control}.items():
+        print(f"== {name} ({len(files)} files)")
+        scores[name] = []
+        for i, f in enumerate(files):
+            frames = wm.read_frames(f, 32)
+            if not frames:
+                print(f"   #{i:<3d} no frames could be read"); continue
+            q = [wm.qim_report(fr) for fr in frames[:: max(1, len(frames) // 3)][:3]]
+            r = np.mean([riva.decode(fr) for fr in frames[::4]], 0)
+            scores[name].append(r)
+            line = (f"   #{i:<3d} frames {len(frames):3d} {frames[0].shape[1]}x{frames[0].shape[0]}  "
+                    f"QIM flagged {sum(x['flag'] for x in q)}/{len(q)} (max score {max(x['score'] for x in q):7.1f}"
+                    f"{', luma only' if q[0]['chroma_subsampled'] else ''})")
+            if vs is not None:
+                _, det = vs.decode_frames(frames)
+                line += f"  VideoSeal detection logit {det:+.2f}"
+            print(line)
+    ref = [s for name in control for s in scores.get(name, [])]
+    for name in kling:
+        st = wm.decoder_stats(scores.get(name, []), ref)
+        print(f"   RivaGAN fixed-message test, {name} vs control videos: agreement {st['agreement']:.2f}  T {st['T']:.1f}"
+              + ("" if len(ref) >= 2 else "  (needs >= 2 control videos)"))
+
+
 if __name__ == "__main__":
-    if sys.argv[1] in ("texture", "samples", "payload"):
-        {"texture": cmd_texture, "samples": cmd_samples, "payload": cmd_payload}[sys.argv[1]](); sys.exit()
+    if sys.argv[1] in ("qim", "decoders", "video"):
+        {"qim": cmd_qim, "decoders": cmd_decoders, "video": cmd_video}[sys.argv[1]](sys.argv[2:]); sys.exit()
+    if sys.argv[1] in ("texture", "samples", "payload", "controls"):
+        {"texture": cmd_texture, "samples": cmd_samples, "payload": cmd_payload, "controls": cmd_controls}[sys.argv[1]](); sys.exit()
     {"container": cmd_container, "steg": cmd_steg, "dct": cmd_dct, "wavelet": cmd_wavelet,
      "robust": cmd_robust, "residual": cmd_residual, "bands": cmd_bands, "grid": cmd_grid}[sys.argv[1]]()

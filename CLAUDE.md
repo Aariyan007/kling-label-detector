@@ -18,6 +18,7 @@ This is a portfolio project for a **reverse-engineering job**. It reverse-engine
 - **`ContentProducer`:** `kling` (IMAGE 2.1, VIDEO 3.0), or `0011` + an 18-character USCC (valid GB 32100 checksum) + `10100` (IMAGE 3.0).
 - **Pixel watermark: inconclusive.** Our tests (SynthID, TrustMark, Watermark Anything, `invisible-watermark`, PRNU-style, 105 plain images) found nothing, but Kling officially claims one and runs a `BLIND_WATERMARK` detector. Videos carry an H.264 SEI marker `kling-ai`. See docs/forensic-audit-2026-10-09.md.
 - Videos made before 2025-09-01 have no label.
+- **Watermark hunt (2026-10-09):** no public source describes Kling's method (docs/watermark-research-2026-10-09.md). Targeted tests with positive controls are in `forensics/wmhunt.py` (`audit.py controls|qim|decoders|video`); the owner's local run plan is docs/watermark-hunt-plan.md.
 
 ## Status
 
