@@ -95,8 +95,9 @@ def label_lines(label, decoded):
     d = decoded["produce_id"]
     if d:
         made = datetime.fromtimestamp(d["created_unix"], timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-        lines.append(f"    region {d['region']} · system {d['system']} · made on {d['client']}")
-        lines.append(f"    made at {made} UTC (decoded from ID)")
+        lines.append(f"    region {d['region']} · system {d['system']} · made on {d['client']}"
+                     f" · worker {d['worker']}")
+        lines.append(f"    made at {made}.{d['milliseconds']:03d} UTC (decoded from ID, ±1 s)")
 
     lines.append(f"  ContentPropagator {show(label.get('ContentPropagator'))}")
     if label.get("PropagateID") != produce_id:

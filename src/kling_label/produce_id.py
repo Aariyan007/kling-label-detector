@@ -1,8 +1,9 @@
 """Split a Kling ProduceID and decode the creation time hidden in it.
 
 Shape: <REGION>_<SYSTEM>_<client>_<15 digits>, e.g. SGP_PROD_ai_web_300000000123456.
-The first 9 digits count seconds since 2016-07-09 01:41:59 UTC (see FINDINGS.md).
-The meaning of the last 6 digits is not confirmed.
+The 15 digits are seconds (9) + worker (3) + milliseconds (3), see FINDINGS.md.
+Seconds count from about 2016-07-09 01:41:59 UTC, so decoded times are good to about 1 s.
+The millisecond field is strongly supported; the worker meaning is a hypothesis.
 """
 
 import re
@@ -22,6 +23,7 @@ def decode_produce_id(value):
         return None
     region, system, client, digits = match.groups()
     created = EPOCH + int(digits) // 1_000_000
+    millis = int(digits[-3:])
     return {
         "region": region,
         "system": system,
@@ -30,4 +32,8 @@ def decode_produce_id(value):
         "extra_digits": digits[-6:],
         "created_unix": created,
         "created_utc": datetime.fromtimestamp(created, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "worker": digits[9:12],
+        "milliseconds": millis,
+        "created_utc_ms": datetime.fromtimestamp(created, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        + f".{millis:03d}Z",
     }

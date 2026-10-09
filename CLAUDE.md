@@ -36,8 +36,8 @@ Where:    PNG text chunk "AIGC" (China GB 45438-2025 format)
   Label             1  (= AI-generated)
   ContentProducer   kling
   ProduceID         SGP_PROD_ai_web_300000000123456
-    region SGP · system PROD · made on ai_web
-    made at 2025-11-xx xx:xx:xx UTC (decoded from ID)
+    region SGP · system PROD · made on ai_web · worker NNN
+    made at 2025-11-xx xx:xx:xx.mmm UTC (decoded from ID, ±1 s)
   ContentPropagator kling
 Privacy:  this ID reveals when the image was made.
 ```
