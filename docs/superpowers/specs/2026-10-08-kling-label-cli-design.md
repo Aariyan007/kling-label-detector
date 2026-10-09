@@ -88,8 +88,9 @@ Then, in order, it stops at the first place that has a label:
    `raw byte scan at offset N (not a standard place)`. This also covers
    formats nobody has tested yet (JPEG, WebP, MOV variants).
 
-Not done: reading pixels. The research found no pixel watermark, so the ID
-cannot be read from pixels.
+Not done: reading pixels. Our tests found no pixel watermark, but Kling
+documents one (unverified; see docs/forensic-audit-2026-10-09.md). Either
+way, the ID cannot be read from pixels by this tool.
 
 ## 4. Decoding
 
