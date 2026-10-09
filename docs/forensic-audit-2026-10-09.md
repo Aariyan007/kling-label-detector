@@ -57,6 +57,11 @@ Observed behaviour (all from the owner's logged-in session at kling.ai/detection
 | Batch 1 | 7 images + 1 MP4 | 7/7 `FAILED` | `AIGC_METADATA`: Detected, producer Kling AI; `BLIND_WATERMARK`: `FAILED` |
 | Batch 2 | 1 image (B, re-encoded no-label) | `FAILED`; `failReason: "AIGC_METADATA,BLIND_WATERMARK"` | - |
 | Batch 3 | 1 image (A2, lossless no-label) | `FAILED` | - |
+| Batch 4 (account C, image detection working again) | 1 untouched IMAGE 3.0 original | Task `DONE`: `AIGC_METADATA: NOT_DETECTED`, `BLIND_WATERMARK: FAILED`, conclusion `NO_SIGNAL` | - |
+| Batch 5 | Account C Inpaint PNG (producer `kling`); same as JPEG q95; account B IMAGE 3.0 as JPEG q95 | PNG: metadata `DETECTED`, conclusion `KLING_GENERATED`. JPEGs: metadata `UNSUPPORTED`, `INCONCLUSIVE`. Watermark `FAILED` on all | - |
+| Batch 6 | IMAGE 2.1 original (producer `kling`); IMAGE 3.0 original (USCC producer) | 2.1: metadata `DETECTED (KLING)`. 3.0: metadata `NOT_DETECTED`. Watermark `FAILED` on both | - |
+
+**Detector finding:** Kling's own `AIGC_METADATA` check recognises labels whose producer is `kling` (IMAGE 2.1, edit outputs) but **not** IMAGE 3.0 labels whose producer is the `0011` + USCC + `10100` form (2 of 2 not detected). `BLIND_WATERMARK` returned `FAILED` on all 15 image submissions and on the video, including tasks that otherwise completed.
 
 - **Where `BLIND_WATERMARK` comes from:** it is not in the public documentation. It appeared in the JSON response of the site's own task-detail request (`/api/creation/v4/detection/tasks/detail`), read from the owner's browser session: `"signals":[{"detector":"AIGC_METADATA",...},{"detector":"BLIND_WATERMARK",...}]`. The page labels the second row "Invisible watermark". So it is an **internal result code observed in a live response**, not a documented API.
 - **What it proves:** Kling runs a separate check besides metadata. It does **not** prove that the check measures pixels, or that image outputs carry a mark. Evidence that would: a `Detected` result on a lossless no-label copy, while a never-generated control is `Not detected`.
@@ -88,8 +93,11 @@ The only shared signal found, the 32 px grid, survives JPEG q95 and q75, resizin
 |------|--------:|--------|-------------------------------|----------------|
 | `AIGC` metadata (kling-label) | 37 Kling + 49 controls | 37/37 found, 0/49 false | None observed | Confirmed |
 | H.264 SEI user data | 2 videos | `kling-ai` in VIDEO 3.0; absent in 2025 video | x264-style SEI is common, but this payload is Kling-specific | Confirmed (1 sample) |
-| Official detector, images | 10 submissions | All `FAILED` | Not applicable | No result |
+| Official detector, images | 15 submissions | Watermark check `FAILED` on all 15; metadata check recognises producer `kling` only | Not applicable | No watermark result; detector misses IMAGE 3.0 labels |
 | Official detector, video | 1 | Metadata Detected; watermark `FAILED` | - | Metadata only |
+| H.264 SEI marker, second video | 1 (VIDEO 3.0 Omni, May 2026, MOV download) | `kling-ai` SEI present (same UUID); no `AIGC` container key in the MOV | - | SEI marker 2/2 post-rules videos |
+| Kling Inpaint / Expand differential test | 4 + 2 outputs of one own test image | Both tools regenerate the whole image at 1024x1344; flat region near-identical across outputs (about 1% of pixels differ) | Regeneration randomness | Cannot isolate a mark; none in flat areas |
+| Second-order (payload) test | 54 textured IMAGE 3.0 images, 1336 cross-batch pairs | No first-order shared pattern (z = +0.1); second-order excess +11.8% (z = +3.0), mostly 0.10-0.25 cycles/px | Content/layout similarity: the same test on non-Kling controls gives a far larger excess | Not attributable to a watermark |
 | Plain-image residual | 105 | Energy 0.0094 vs noise 0.0095 | Shading, grid | No fixed mark in flat regions |
 | Textured-region LOO | 12 | +0.0016 raw, -0.0006 without grid | Grid explains the raw signal | No fixed mark beyond grid |
 | 32 px grid per image | 105 + 27 + 49 | Not distinctive | Present in controls | Pipeline artifact |
@@ -136,7 +144,9 @@ The sample CSV (181 rows) and all sample files stay local in the git-ignored `sa
 - **Per-image keyed or content-adaptive marks** cannot be found by averaging-based tests; only the owner's detector can find them.
 - **Low power in textured regions:** only 12 usable normal images of one size and model.
 - **No working official result for images.**
-- One video; no mobile-app, mainland-China, JPEG-download or paid watermark-free samples.
+- Two videos; no mobile-app, mainland-China, JPEG-download or paid watermark-free samples.
+- Kling's edit tools (Inpaint, Expand) regenerate the whole image, so a "same edit twice" differential test cannot isolate a mark.
+- The second-order (payload) test lacks a clean null: a set of watermark-free AI images with similar prompts and layout would be needed to tell a small excess from content similarity.
 
 **Smallest decisive next experiment** (one batch of 4 on an account with detection quota, once image detection works):
 

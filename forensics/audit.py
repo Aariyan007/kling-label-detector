@@ -432,8 +432,49 @@ def cmd_samples():
     print(f"wrote samples/forensic_samples.csv ({len(rows)} rows)")
 
 
+def cmd_payload():
+    """Second-order test for a per-image (payload-modulated) mark on textured IMAGE 3.0 images.
+
+    If every image adds sum_k b_ik * P_k with fixed secret patterns P_k and per-image bits b_ik, averaging cancels it,
+    but pairwise residual correlations get a larger spread than chance. Compare the mean squared cross-batch
+    correlation of aligned residuals with the same statistic after random circular shifts, which break any
+    position-locked structure. The periodic pipeline grid is removed first, and same-batch pairs are excluded so
+    shared prompts cannot create correlation."""
+    import re
+    from scipy.ndimage import uniform_filter
+    files = sorted(glob.glob("samples/round5/*.png"))
+    S, P = 1024, 32
+    def notch(x):
+        X = np.fft.fft2(x); X[np.ix_(np.arange(S) % (S // P) == 0, np.arange(S) % (S // P) == 0)] = 0
+        return np.real(np.fft.ifft2(X)).astype(np.float32)
+    R, B = [], []
+    for f in files:
+        y = np.asarray(Image.open(f).convert("L"), dtype=np.float32)
+        y0 = (y.shape[0] - S) // 2; x0 = (y.shape[1] - S) // 2; y = y[y0:y0 + S, x0:x0 + S]
+        loc = np.sqrt(np.maximum(uniform_filter(y * y, 9) - uniform_filter(y, 9) ** 2, 0))
+        m = (loc > 2.0) & (y > 8) & (y < 247)
+        r = notch(y - gaussian_filter(y, 1.5)) * m
+        s = r[m].std() if m.any() else 1.0
+        R.append((r / s).astype(np.float32)); B.append(re.findall(r"_(\d+)_\d+\.png$", f)[0])
+    R = np.stack(R); N = len(R)
+    def msq(Rs):
+        flat = Rs.reshape(N, -1); flat = flat - flat.mean(1, keepdims=True)
+        flat = flat / (np.linalg.norm(flat, axis=1, keepdims=True) + 1e-9)
+        C = flat @ flat.T
+        vals = [C[i, j] ** 2 for i in range(N) for j in range(i + 1, N) if B[i] != B[j]]
+        return float(np.mean(vals)), len(vals)
+    aligned, npairs = msq(R)
+    rng = np.random.default_rng(0)
+    null = [msq(np.stack([np.roll(r, (int(rng.integers(64, S - 64)), int(rng.integers(64, S - 64))), (0, 1)) for r in R]))[0]
+            for _ in range(8)]
+    z = (aligned - np.mean(null)) / (np.std(null) + 1e-12)
+    print(f"== {N} textured IMAGE 3.0 images, {npairs} cross-batch pairs, grid removed")
+    print(f"   mean squared pairwise correlation: aligned {aligned:.3e} vs shifted null {np.mean(null):.3e} "
+          f"(sd {np.std(null):.1e}); z = {z:+.1f}")
+
+
 if __name__ == "__main__":
-    if sys.argv[1] in ("texture", "samples"):
-        {"texture": cmd_texture, "samples": cmd_samples}[sys.argv[1]](); sys.exit()
+    if sys.argv[1] in ("texture", "samples", "payload"):
+        {"texture": cmd_texture, "samples": cmd_samples, "payload": cmd_payload}[sys.argv[1]](); sys.exit()
     {"container": cmd_container, "steg": cmd_steg, "dct": cmd_dct, "wavelet": cmd_wavelet,
      "robust": cmd_robust, "residual": cmd_residual, "bands": cmd_bands, "grid": cmd_grid}[sys.argv[1]]()
