@@ -504,10 +504,16 @@ def hunt_options(argv):
 
 
 def hunt_groups(opts, kling_default, control_default):
+    import os
     kling = {"Kling (--kling)": opts["kling"]} if opts["kling"] else kling_default
     control = {"Control (--control)": opts["control"]} if opts["control"] else control_default
-    cut = lambda d: {k: v[: opts["limit"]] for k, v in d.items() if v}
-    return cut(kling), cut(control)
+    def cut(groups):
+        groups = {k: [f for f in v if os.path.isfile(f)][: opts["limit"]] for k, v in groups.items()}
+        return {k: v for k, v in groups.items() if v}
+    kling, control = cut(kling), cut(control)
+    if not kling:
+        raise SystemExit("no Kling sample files found (samples/ is local only; or pass --kling GLOB)")
+    return kling, control
 
 
 def wmhunt_module():
@@ -530,7 +536,7 @@ def cmd_qim(argv):
     """Key-free scan for quantization-index-modulation lattices (the DWT-DCT-SVD blind-watermark family)."""
     wm = wmhunt_module()
     kling, control = hunt_groups(hunt_options(argv), {
-        "Kling IMAGE 2.1 normal": KLING_NORMAL, "Kling IMAGE 3.0 textured": KLING_TEXTURED, "Kling plain": PLAIN[:20]},
+        "Kling normal": KLING_NORMAL, "Kling IMAGE 3.0 textured": KLING_TEXTURED, "Kling plain": PLAIN[:20]},
         {"Control PNG": CONTROL_PNG, "Control JPEG": CONTROL_JPEG})
     print(f"== QIM lattice scan (flag: score >= {wm.QIM_FLAG_SCORE:.0f} with contrast >= {wm.QIM_MIN_CONTRAST:.0f}, "
           "no JPEG history). Run 'controls' first.")
@@ -550,7 +556,7 @@ def cmd_decoders(argv):
     """Do Kling images share one message under a public neural watermark decoder? Compared with PNG controls."""
     wm = wmhunt_module()
     kling, control = hunt_groups(hunt_options(argv), {
-        "Kling IMAGE 2.1 normal": KLING_NORMAL, "Kling IMAGE 3.0 textured": KLING_TEXTURED},
+        "Kling normal": KLING_NORMAL, "Kling IMAGE 3.0 textured": KLING_TEXTURED},
         {"Control PNG": CONTROL_PNG})
     ref_files = [f for files in control.values() for f in files]
     for make in (wm.RivaGan, wm.stegastamp, wm.hidden):
