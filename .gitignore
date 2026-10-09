@@ -4,3 +4,7 @@ samples/
 sample-log.md
 notes/figures/
 refs/
+__pycache__/
+*.egg-info/
+build/
+dist/

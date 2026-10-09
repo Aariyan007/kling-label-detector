@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kling-label"
+version = "0.1.0"
+description = "Detection-only reader for Kling AI's hidden AI-generated label (China GB 45438-2025)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = []
+
+[project.scripts]
+kling-label = "kling_label.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -22,10 +22,11 @@ This is a portfolio project for a **reverse-engineering job**. It reverse-engine
 ## Status
 
 - Research: done and published.
-- Brainstorming: approach A was approved (a write-up plus a small CLI). Design part 1 (CLI behavior, below) is **waiting for the owner's approval**. Still to come: part 2 (code layout), part 3 (tests and README), then a spec in `docs/superpowers/specs/`, then a plan, then TDD implementation.
+- Design parts 1–3 approved. Spec: `docs/superpowers/specs/2026-10-08-kling-label-cli-design.md`. Plan: `docs/superpowers/plans/2026-10-08-kling-label-cli.md`.
+- `kling-label` v0.1 built (TDD, `python -m unittest`). Also finds the label in `zTXt`/`iTXt`, XMP, and by a raw byte scan for other formats. Run `scripts/check_staged.sh` before every commit.
 - Still to test: a mobile-app sample (does the client field say `ai_app`?).
 
-## Design part 1 (proposed, not yet approved)
+## Design part 1 (approved)
 
 ```
 $ kling-label image.png
