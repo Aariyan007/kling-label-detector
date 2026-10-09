@@ -9,6 +9,8 @@ Usage (from the repository root, with Pillow, NumPy and SciPy installed):
     python forensics/audit.py residual    # flatness, leave-one-out, averaged-residual energy, split-half
     python forensics/audit.py bands       # shared signal by spatial-frequency band (shading, 32 px grid)
     python forensics/audit.py grid        # 32 px grid strength in single images, Kling vs controls
+    python forensics/audit.py texture     # fixed pattern in textured regions only, with and without the grid
+    python forensics/audit.py samples     # sample-level CSV with hashes (written to git-ignored samples/)
 
 Sample folders are local only (samples/ is git-ignored):
     samples/kling_*.png, samples/round2/*.png   Kling outputs (normal and plain)
@@ -381,6 +383,57 @@ def cmd_grid():
         print(f"   {name:13s} 32 px peak ratio median {np.median(s):6.1f} (n={len(s)})")
 
 
+def cmd_texture():
+    """Fixed-pattern test restricted to textured, unclipped pixels of normal IMAGE 2.1 images,
+    before and after removing the periodic (period <= 32 px) pipeline grid."""
+    from scipy.ndimage import uniform_filter
+    H, W, P = 2464, 1536, 32
+    def notch(x):
+        X = np.fft.fft2(x); X[np.ix_(np.arange(H) % (H // P) == 0, np.arange(W) % (W // P) == 0)] = 0
+        return np.real(np.fft.ifft2(X)).astype(np.float32)
+    R, M = [], []
+    for f in sorted(glob.glob("samples/kling_*Text_to_Image*.png")):
+        y = np.asarray(Image.open(f).convert("L"), dtype=np.float32)[:H]
+        loc = np.sqrt(np.maximum(uniform_filter(y * y, 9) - uniform_filter(y, 9) ** 2, 0))
+        m = (loc > 2.0) & (y > 8) & (y < 247)
+        if m.mean() < 0.15:
+            continue
+        r = y - gaussian_filter(y, 1.5)
+        R.append(np.where(m, r / (r[m].std() + 1e-6), 0).astype(np.float32)); M.append(m)
+    R = np.stack(R); M = np.stack(M); N = len(R)
+    def loo(Rs):
+        S = Rs.sum(0); C = M.sum(0).astype(np.float32); out = []
+        for i in range(N):
+            v = M[i] & (C - M[i] >= 3); fbar = (S - Rs[i]) / np.maximum(C - M[i], 1)
+            x = Rs[i][v] - Rs[i][v].mean(); y = fbar[v] - fbar[v].mean()
+            out.append(float((x * y).sum() / np.sqrt((x * x).sum() * (y * y).sum())))
+        return np.array(out)
+    a = loo(R); b = loo(np.stack([notch(r) * m for r, m in zip(R, M)]))
+    print(f"== {N} textured IMAGE 2.1 images: LOO corr raw {a.mean():+.4f} (all > 0: {bool((a > 0).all())}); "
+          f"grid removed {b.mean():+.4f} (all > 0: {bool((b > 0).all())})")
+
+
+def cmd_samples():
+    """Write a sample-level CSV (sha256, group, size, label present, chunk list, flatness) to samples/ (git-ignored)."""
+    import csv, hashlib, json
+    rows = []
+    for group, files in {"kling_normal": KLING_NORMAL, "kling_plain": PLAIN, "control": CONTROL_ALL}.items():
+        for f in files:
+            raw = open(f, "rb").read(); im = Image.open(f)
+            lab = im.info.get("AIGC")
+            prod = json.loads(lab)["ContentProducer"] if lab else ""
+            a = np.asarray(im.convert("RGB"), dtype=np.float32)
+            rows.append({"file": f.split("/")[-1], "group": group, "sha256": hashlib.sha256(raw).hexdigest(),
+                         "format": im.format, "width": im.width, "height": im.height, "aigc_label": bool(lab),
+                         "producer_form": "uscc" if prod.startswith("0011") else (prod or "-"),
+                         "interior_std": round(float(a[96:-96, 96:-96].std()), 3)})
+    with open("samples/forensic_samples.csv", "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+    print(f"wrote samples/forensic_samples.csv ({len(rows)} rows)")
+
+
 if __name__ == "__main__":
+    if sys.argv[1] in ("texture", "samples"):
+        {"texture": cmd_texture, "samples": cmd_samples}[sys.argv[1]](); sys.exit()
     {"container": cmd_container, "steg": cmd_steg, "dct": cmd_dct, "wavelet": cmd_wavelet,
      "robust": cmd_robust, "residual": cmd_residual, "bands": cmd_bands, "grid": cmd_grid}[sys.argv[1]]()
