@@ -16,7 +16,7 @@ This is a portfolio project for a **reverse-engineering job**. It reverse-engine
 - **MP4:** the same JSON under the `mdta` key `AIGC` in `moov/udta/meta` (`keys` + `ilst` boxes).
 - **`ProduceID`:** `SGP_PROD_ai_web_` + 15 digits. Creation time in UTC = `1468028519 + digits // 1_000_000` (Unix seconds, confirmed to ±0.5 s). The remaining 6 digits = 3-digit worker number (hypothesis: values 300-318 / 500-527) + 3-digit milliseconds (strong evidence: rollover .998 -> .003 at a seconds tick).
 - **`ContentProducer`:** `kling` (IMAGE 2.1, VIDEO 3.0), or `0011` + an 18-character USCC (valid GB 32100 checksum) + `10100` (IMAGE 3.0).
-- **No pixel watermark.** SynthID, TrustMark, Watermark Anything, `invisible-watermark` and a PRNU-style test all found nothing.
+- **Pixel watermark: inconclusive.** Our tests (SynthID, TrustMark, Watermark Anything, `invisible-watermark`, PRNU-style, 105 plain images) found nothing, but Kling officially claims one and runs a `BLIND_WATERMARK` detector. Videos carry an H.264 SEI marker `kling-ai`. See docs/forensic-audit-2026-10-09.md.
 - Videos made before 2025-09-01 have no label.
 
 ## Status
