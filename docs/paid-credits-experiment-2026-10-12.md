@@ -51,13 +51,30 @@ A watermark added at generation time (not the finishing step) could sit identica
 
 **Conclusion:** the positive controls prove the test would catch a fixed baked-in additive watermark of **± 1 level or stronger** (z = 13.7 and 58.4). The real Kling images sit **exactly at the null (z = +0.1)**. So there is no fixed baked-in watermark down to about ± 1 level (≈ 0.4% of full scale); anything weaker would be too fragile to survive a resave and useless as a robust mark. (This test targets a *fixed* pattern; *keyed* per-image marks were addressed by the earlier neural-decoder and latent-inversion tests, also negative with positive controls.)
 
+## Test D — video: is there a watermark spread over the frames?
+
+A video watermark could live in the frames rather than the bitstream (the known `kling-ai` H.264 SEI marker is bitstream, not decoded pixels). We tested for a pattern that repeats across frames and is **shared between different Kling videos**: extract ~40 frames per video, take the per-frame high-pass residual, average over frames (moving content cancels, a persistent pattern survives), then correlate those temporal-average residuals across videos.
+
+Videos: 3 different Kling videos (a steam clip, an Omni clip, and one freshly generated rainy-city clip, VIDEO 3.0 720p), 1 pre-rules Kling video, 2 non-Kling controls. A note on method: two of our sample files turned out to be the same video (identical MD5) — caught because their correlation was exactly +1.000 — so one fresh video was generated to keep three genuinely different Kling clips.
+
+| Comparison | mean \|r\| |
+|------------|-----------:|
+| **Kling vs Kling** (3 different clips, 3 pairs) | **0.005** |
+| Kling vs control | 0.004 |
+| control vs control | 0.004 |
+| Kling vs pre-rules | 0.008 |
+| **Positive control** (same ±2 pattern planted in two clips) | **0.045** |
+
+**Conclusion:** different Kling videos share **no more hidden signal than unrelated videos do** (0.005 ≈ 0.004). The planted positive control sits ~10× higher (0.045), so a shared fixed frame watermark would have been obvious. No invisible watermark is detectable in the decoded video frames. (Same honest limit as the images: a keyed per-video mark, or a time-varying mark, is not fully excluded by a fixed-pattern test.)
+
 ## Overall
 
-Across every method available to an outside researcher **and** Kling's own detector, there is **no detectable invisible watermark** on Kling IMAGE 3.0 images:
+Across every method available to an outside researcher **and** Kling's own detector, there is **no detectable invisible watermark** on Kling IMAGE 3.0 images (or its videos):
 
 - the "without watermark" step removes only the visible corner logo (Test A);
 - Kling's own invisible-watermark check fails on a pristine original (Test B);
 - no fixed baked-in pattern exists down to ± 1 level, with a validated positive control (Test C);
+- no shared frame watermark across different videos, with a validated positive control (Test D);
 - earlier tests ruled out common schemes, QIM, public neural decoders, and Tree-Ring-style latent marks (FINDINGS §5, §8).
 
 The only AI markings on these images are the **visible corner logo** (easily removed) and the **`AIGC` text metadata** — and that metadata is in a form **Kling's own detector cannot read**. In practice, a Kling IMAGE 3.0 image passes Kling's own checker as "no signal".
