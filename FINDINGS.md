@@ -70,7 +70,10 @@ The same account produced both formats, so **the model, not the account, decides
 
 The 18-character middle part passes the check-digit algorithm of the Chinese **Unified Social Credit Code** (GB 32100-2015). It is the only 18-character window in the string that does. Its prefix `91` marks an enterprise, and `110108` is the administrative code for Haidian District, Beijing. **The code belongs to Beijing Kuaishou Technology Co., Ltd. (北京快手科技有限公司)**, Kling's developer, founded 2015-03-20. Search-engine indexes of two Chinese company-registry sites (Shuidi and Qichacha) list `91110108335469089C` as that company's taxpayer ID, together with organization code `33546908-9`. That organization code is embedded in the USCC itself (characters 9 to 17 = `335469089`), so the two identifiers agree. The registry sites themselves block visitors from outside mainland China, so this was confirmed through their indexed pages rather than the official GSXT registry. The `0011` prefix and `10100` suffix are presumably fields of the TC260 producer-code scheme; their meaning was not confirmed.
 
-## 5. Pixel watermark: none found by our tests, but officially claimed (inconclusive)
+## 5. Pixel watermark: none found by our tests, but officially claimed (resolved in §9, 2026-10-12)
+
+> **Update (2026-10-12):** paid-plan experiments (§9) now resolve this. A with/without-logo pixel diff, Kling's own detector on a pristine original, and a validated baked-in fixed-pattern test all point the same way: no detectable invisible watermark on IMAGE 3.0 images. The section below is the original 2026-10-09 evidence.
+
 
 Full method and numbers are in [notes/2026-10-09-pixel-spike.md](notes/2026-10-09-pixel-spike.md). Summary:
 
@@ -136,13 +139,24 @@ A third-party "AI image detector" website rated a Kling image 99% AI. Such sites
 
 - **Latent-noise test (Colab, public Stable Diffusion 1.5 inversion):** a self-made Tree-Ring-style positive control was detected (p = 0.0011), while 40 Kling IMAGE 3.0 images scored like clean images (p = 0.57). No generation-time ring watermark is visible through a public model; a mark readable only with Kling's own model remains possible. Details: docs/watermark-hunt-results-2026-10-09.md.
 
-## 9. Not yet tested
+## 9. Paid-plan experiments (2026-10-12): the watermark question, resolved
+
+Run on a paid Standard plan (IMAGE 3.0, 2K HD), driving the real web app. Detection only; the "without watermark" files were made by Kling's own download option. Full method and numbers: [docs/paid-credits-experiment-2026-10-12.md](docs/paid-credits-experiment-2026-10-12.md).
+
+- **Same image, with vs without the visible logo (Test A).** We obtained both versions of one generated image. They are **byte-identical outside the logo corner** (centre 1024x1024 identical; 99.8% of all pixels identical; 0.000% differ outside the corner). The "Without Watermark" step changes **only the ~8,000 pixels of the visible "KlingAI 3.0" corner logo** and nothing else. So **no invisible pixel watermark is added in the finishing step** — this disproves the API hypothesis (`watermark_info` → `watermark_url`). The `AIGC` metadata is present in both versions.
+- **Kling's own detector on a pristine logo-free original (Test B).** The untouched without-logo PNG returned **"No supported signal"** — `AIGC metadata: Not detected`, `Invisible watermark: Failed` — while our `kling-label` reads the `AIGC` label (USCC form) in the very same file. This reproduces the IMAGE 3.0 metadata gap live, and shows Kling's own `BLIND_WATERMARK` check finds no invisible watermark in a perfect original (not a screenshot).
+- **Baked-in fixed-pattern test across 3 different scenes (Test C).** Pairwise high-pass residual correlation (full frame minus corner, ~3.9M px). Real images: z = **+0.1** vs the shuffled null (no shared pattern). Positive controls planted into these same images: ±1 level → z = +13.7, ±2 → z = +58.4 (both DETECTED). So the test would catch any fixed baked-in mark of ±1 level or stronger; Kling shows none.
+- **New detail on `ProduceID`:** it is **per generation batch** — both images in a 2-image request share the same `ProduceID` and timestamp, so the ID identifies the request, not the single image.
+
+**Bottom line.** Across every outside method **and** Kling's own detector, there is **no detectable invisible watermark** on IMAGE 3.0 images. The only markings are the visible corner logo (easily removed) and the `AIGC` text metadata (which Kling's own detector cannot read for IMAGE 3.0). Honest limit: a mark readable only with Kling's private model, or weaker than ±1 level, cannot be excluded — but such a mark would not survive ordinary compression, so it could not provide the traceability Kling claims.
+
+## 10. Not yet tested
 
 - Kling mobile app output (does the client field read something other than `ai_web`?)
-- The mainland-China service (可灵), JPEG or MOV downloads, and paid watermark-free downloads
+- The mainland-China service (可灵), and JPEG or MOV downloads (paid watermark-free downloads were tested; see §9)
 - Whether `ContentProducer` changes for other features (edit, expand, upscale, multi-reference)
 - Whether the worker pools (300s vs 500s) map to data centres or service types
 
-## 10. Ethics
+## 11. Ethics
 
 This work is detection-only. It reads and explains a label; it does not provide tools or steps to remove, forge or alter labels, and doing so may violate the labeling rules and Kling's terms. Only the author's own generations were analyzed.
