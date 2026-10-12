@@ -84,7 +84,7 @@ Kling (by Kuaishou) is one of the most used AI image and video generators. This 
 5. **Kling's own detector misses IMAGE 3.0 labels, and its watermark check never returns a result.** The metadata check works — it reports `Detected` for producer `kling` (e.g. a VIDEO 3.0 original) — but returns `Not detected` for untouched IMAGE 3.0 originals (the USCC producer form), so a Kling IMAGE 3.0 image passes Kling's own checker as "no signal" while our tool reads its `AIGC` label. Separately, the invisible-watermark check returns `Failed` on *every* file, including ones positively identified as Kling — so `Failed` means the check is non-functional, **not** that no watermark exists (`Failed` ≠ `Not detected`). On 2026-10-12 image detection was also down entirely ("Detection failed. Please try again" on 7/7 image uploads; video worked). Matrix: [docs/paid-credits-experiment-2026-10-12.md](docs/paid-credits-experiment-2026-10-12.md).
 6. **2K images appear to be 2x-upscaled 1K images.** 1K output is 768x1360 and 2K output is exactly 1536x2720. A period-2 pixel grid found in the noise analysis matches this.
 
-See [FINDINGS.md](FINDINGS.md) for method, evidence and limits.
+See [FINDINGS.md](FINDINGS.md) for method, evidence and limits, [docs/methodology.md](docs/methodology.md) for the pre-registered metrics and a table of exactly what each test can and cannot exclude, and [docs/dataset.md](docs/dataset.md) for the (anonymised) dataset manifest.
 
 ## Ethics and scope
 
