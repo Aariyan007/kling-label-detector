@@ -31,6 +31,7 @@ Decided **before** evaluating the held-out set (dataset.md):
 | Latent inversion / Tree-Ring (earlier) | ring-score p vs clean, one-sided | p < 0.01 ⇒ latent ring present | self-made Tree-Ring key, same model |
 | Large-scale averaging (#4) | cross-**batch** correlation of per-batch average residuals | consistent r > 0.3 across *different-content* batches | planted ±0.3 fixed pattern |
 | Blind-watermark decode (#5) | cross-**batch** bit-agreement, default password | > 0.55 across *different-content* batches | library embed→extract round-trip |
+| Learn-a-detector (#2) | **held-out** AUC, Kling vs other-AI, pixels only | AUC > 0.9 *and* held-out Kling scored as Kling | in-sample 5-fold AUC (separability exists) |
 
 A test's negative result is reported **only if its positive control passed** under the
 same settings.
@@ -48,6 +49,7 @@ positive control crossed it. Key numbers:
 - Latent inversion: Kling p = 0.57 (threshold 0.01); control p = 0.0011.
 - **#4 averaging (331 images):** within-pool split-half r = 0.41 and an averaged residual 2.6–4.4× the noise floor *looked positive* — but the content control killed it: cross-batch correlation between different-content batches was round4×round5 = **−0.001** (and round3×round4 = +0.986, i.e. those two batches are near-duplicates). The apparent signal was duplicate/similar content, not a watermark.
 - **#5 blind-watermark decode:** Kling images agreed 0.64 vs 0.50 for non-Kling (Gemini, photos) *looked positive* — but cross-batch bit-agreement was round4×round5 = **0.49** and round4×fresh-session = **0.50**. The 0.64 was within-batch content similarity, not a shared message.
+- **#2 learn-a-detector (RandomForest on residual spectra, Kling vs Gemini):** in-sample 5-fold AUC = **1.000** (perfectly separable in-sample) — but on content-different held-out data (round5 + the fresh paid images) AUC = **0.59** (scale-normalised) / **0.72** (native resolution), and *every* held-out Kling image scored as non-Kling. The 1.000 was content/batch overfitting; there is no reliable content-independent pixel signature. The faint native-resolution tendency is consistent with Kling's known 2× upscale fingerprint (§5), not a deliberate watermark, and is not a usable detector. Script: [`forensics/pixel_classifier.py`](../forensics/pixel_classifier.py).
 
 ### Content control: how two false positives were caught
 
@@ -72,6 +74,7 @@ just "Kling vs non-Kling" — are required.
 | Tree-Ring latent mark, via a public model | **excluded** | p = 0.57 vs control 0.0011 | inversion used public SD 1.5, not Kling's model |
 | Weak **fixed** additive pattern (content-independent) | **excluded to ≈ ±0.24 levels** | #4 averaging 331 images, cross-batch control | only *fixed* marks; content-keyed not covered |
 | Message via `blind_watermark` (DWT-DCT-SVD, default password) | **excluded** | #5, cross-batch control (0.49) vs control round-trip | non-default password / variant scheme not covered |
+| Learnable content-independent pixel signature (keyed watermark or strong fingerprint) | **not clearly present** | #2: in-sample AUC 1.0 but held-out 0.59–0.72, no Kling calls | a weak native-res tendency (≈ known upscale fingerprint) remains; resolution-linked, not usable |
 | **Content-keyed / learned mark** (e.g. Stable-Signature-style) | **not excluded** | needs Kling's private extractor | undetectable without the key/model |
 | **Sub-±0.24-level fixed mark** | **not excluded** | below #4's floor | would not survive ordinary resave/compression |
 
