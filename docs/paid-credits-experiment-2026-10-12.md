@@ -1,6 +1,6 @@
 # Paid-plan experiment: with/without watermark, live detector, and baked-in test (2026-10-12)
 
-This closes the project's last open question (GitHub issue #10): **does a Kling image carry an invisible pixel watermark, separate from the visible logo and the text metadata?**
+This addresses the project's last open question (GitHub issue #10): **does a Kling image carry an invisible pixel watermark, separate from the visible logo and the text metadata?** The answer, stated carefully: no such watermark is detectable by any method available to us, but absence cannot be proven outright (see the limits in "Overall").
 
 It was run on a paid Standard plan (IMAGE 3.0, 2K HD) using a small number of credits, driving the real web app. It is **detection only**: no watermark or label was removed, forged, or altered by us. The "without watermark" files were produced by Kling's own download option. Only numbers are reported; no difference pattern, ID, or image is included. The real `ProduceID` is redacted.
 
@@ -33,9 +33,22 @@ We uploaded the untouched, full-resolution **without-logo** PNG to Kling's own d
 | Invisible watermark (`BLIND_WATERMARK`) | **Failed** | — |
 | Overall conclusion | **"No supported signal was detected."** | KLING LABEL FOUND |
 
-**Conclusion:** two findings at once, on a single pristine file, side by side.
+**Conclusion:** one clear finding, and one check we must read carefully.
 1. **Kling's own detector cannot read its own IMAGE 3.0 metadata** (the USCC producer form). Our tool reads it; theirs returns "not detected". This reproduces the IMAGE 3.0 detector gap live.
-2. **No invisible watermark in a clean original.** Kling's own `BLIND_WATERMARK` check returned `Failed` on a perfect, unmodified file — not a screenshot, not a re-save. If a working invisible watermark existed, Kling's own detector is where it would show.
+2. **The invisible-watermark check returned `Failed` — but `Failed` is not the same as "no watermark."** See the reproducibility matrix below: this check returns `Failed` on *every* file, including a video that the same tool positively identified as Kling (metadata `Detected`). A working check that found nothing would report "not detected", the way the metadata check does. So `Failed` means the blind-watermark check is **not producing a result** (broken or unsupported), and this experiment **does not, by itself, establish that no invisible watermark exists.** The evidence for absence comes from our own tests (A, C, D, and the earlier forensics), not from this check.
+
+### Detector reproducibility matrix (what `Failed` vs `Not detected` actually mean)
+
+| Input | Our parser | Kling AIGC metadata | Kling invisible watermark | Kling overall |
+|-------|-----------|---------------------|---------------------------|---------------|
+| VIDEO 3.0 original (producer `kling`) | label found | **Detected** (Kling AI) | **Failed** | "Kling AI generation signals detected" |
+| IMAGE 3.0 original (USCC producer) | label found | **Not detected** | **Failed** | "No supported signal" |
+| IMAGE 2.1 original (producer `kling`) | label found | — (service error) | — | **"Detection failed. Please try again"** |
+| Non-Kling control (Gemini) | no label | — (service error) | — | **"Detection failed. Please try again"** |
+
+Two distinct kinds of "failure" appear, and they mean different things:
+- **Overall "Detection failed. Please try again"** is a *service error* — the detection did not run. On 2026-10-12 **every image upload** hit this (7/7 attempts, Kling and non-Kling alike), while **video detection worked** (2/2). So Kling's image detector was simply down.
+- **`Invisible watermark: Failed` inside a *completed* detection** (the video, and the IMAGE 3.0 original earlier) is the blind-watermark check never returning a result — it was `Failed` even on a file confirmed as Kling by the metadata check. This matches the earlier run where it was `Failed` on all 15 images and the video. The honest reading: **Kling's blind-watermark check is non-functional for everything we have tested; it provides no evidence either way about an invisible watermark.** The *metadata* check, by contrast, does work and distinguishes producer `kling` (Detected) from the IMAGE 3.0 USCC form (Not detected) — which is the detector gap.
 
 ## Test C — baked-in fixed-pattern test across different scenes
 
@@ -51,14 +64,34 @@ A watermark added at generation time (not the finishing step) could sit identica
 
 **Conclusion:** the positive controls prove the test would catch a fixed baked-in additive watermark of **± 1 level or stronger** (z = 13.7 and 58.4). The real Kling images sit **exactly at the null (z = +0.1)**. So there is no fixed baked-in watermark down to about ± 1 level (≈ 0.4% of full scale); anything weaker would be too fragile to survive a resave and useless as a robust mark. (This test targets a *fixed* pattern; *keyed* per-image marks were addressed by the earlier neural-decoder and latent-inversion tests, also negative with positive controls.)
 
+## Test D — video: is there a watermark spread over the frames?
+
+A video watermark could live in the frames rather than the bitstream (the known `kling-ai` H.264 SEI marker is bitstream, not decoded pixels). We tested for a pattern that repeats across frames and is **shared between different Kling videos**: extract ~40 frames per video, take the per-frame high-pass residual, average over frames (moving content cancels, a persistent pattern survives), then correlate those temporal-average residuals across videos.
+
+Videos: 3 different Kling videos (a steam clip, an Omni clip, and one freshly generated rainy-city clip, VIDEO 3.0 720p), 1 pre-rules Kling video, 2 non-Kling controls. A note on method: two of our sample files turned out to be the same video (identical MD5) — caught because their correlation was exactly +1.000 — so one fresh video was generated to keep three genuinely different Kling clips.
+
+| Comparison | mean \|r\| |
+|------------|-----------:|
+| **Kling vs Kling** (3 different clips, 3 pairs) | **0.005** |
+| Kling vs control | 0.004 |
+| control vs control | 0.004 |
+| Kling vs pre-rules | 0.008 |
+| **Positive control** (same ±2 pattern planted in two clips) | **0.045** |
+
+**Conclusion:** different Kling videos share **no more hidden signal than unrelated videos do** (0.005 ≈ 0.004). The planted positive control sits ~10× higher (0.045), so a shared fixed frame watermark would have been obvious. No invisible watermark is detectable in the decoded video frames. (Same honest limit as the images: a keyed per-video mark, or a time-varying mark, is not fully excluded by a fixed-pattern test.)
+
 ## Overall
 
-Across every method available to an outside researcher **and** Kling's own detector, there is **no detectable invisible watermark** on Kling IMAGE 3.0 images:
+**No independently detectable invisible watermark was found in the tested Kling IMAGE 3.0 samples (or its video frames).** Each test below rules out a specific class of watermark; together they narrow the possibilities, but they cannot prove that no watermark of any kind exists.
 
-- the "without watermark" step removes only the visible corner logo (Test A);
-- Kling's own invisible-watermark check fails on a pristine original (Test B);
+- the "without watermark" step removes only the visible corner logo, so no invisible mark is *added in the finishing step* (Test A);
 - no fixed baked-in pattern exists down to ± 1 level, with a validated positive control (Test C);
-- earlier tests ruled out common schemes, QIM, public neural decoders, and Tree-Ring-style latent marks (FINDINGS §5, §8).
+- no shared frame watermark across different videos, with a validated positive control (Test D);
+- earlier tests ruled out common schemes, QIM, public neural decoders, and Tree-Ring-style latent marks, each with a positive control (FINDINGS §5, §8).
+
+What this does **not** establish: Kling's own blind-watermark check could not be used as evidence either way — it returns `Failed` on every file, including confirmed-Kling ones (Test B). And these tests target *fixed / shared* patterns; a **content-keyed mark, or one readable only with Kling's private model**, is not excluded. The honest summary is "no watermark that any method available to us can detect," not "no watermark."
+
+The most defensible positive finding here is about the **detector**, not the watermark: Kling's own tool cannot read its own IMAGE 3.0 metadata, and its blind-watermark check never returns a result.
 
 The only AI markings on these images are the **visible corner logo** (easily removed) and the **`AIGC` text metadata** — and that metadata is in a form **Kling's own detector cannot read**. In practice, a Kling IMAGE 3.0 image passes Kling's own checker as "no signal".
 
