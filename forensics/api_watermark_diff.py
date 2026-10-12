@@ -38,10 +38,23 @@ import urllib.request
 BASE_URL   = os.environ.get("KLING_BASE_URL", "https://api-singapore.klingai.com")
 GEN_PATH   = "/v1/images/generations"            # POST to create a task
 QUERY_PATH = "/v1/images/generations/{task_id}"  # GET to poll a task
-MODEL_NAME = os.environ.get("KLING_MODEL", "kling-v2")   # the IMAGE model that carries the label
+MODEL_NAME = os.environ.get("KLING_MODEL", "kling-v3")   # the IMAGE model that carries the label (kling-v3 = IMAGE 3.0)
 # The field that turns on the watermarked second output. Kling's IMAGE 3.0 docs describe
 # `watermark_info`; keep it here so it is easy to adjust if the schema differs.
 WATERMARK_PAYLOAD = {"watermark_info": {"enabled": True}}
+
+
+def auth_token():
+    """Return the Bearer token. Prefer a direct API key (KLING_API_KEY); otherwise
+    build a JWT from an AccessKey/SecretKey pair."""
+    direct = os.environ.get("KLING_API_KEY")
+    if direct:
+        return direct
+    ak = os.environ.get("KLING_ACCESS_KEY"); sk = os.environ.get("KLING_SECRET_KEY")
+    if not ak or not sk:
+        print("Set KLING_API_KEY (a direct key), or KLING_ACCESS_KEY + KLING_SECRET_KEY.")
+        sys.exit(1)
+    return jwt_token(ak, sk)
 
 
 def jwt_token(ak, sk, ttl=1800):
@@ -77,14 +90,9 @@ def download(url, path):
 
 
 def main():
-    ak = os.environ.get("KLING_ACCESS_KEY")
-    sk = os.environ.get("KLING_SECRET_KEY")
-    if not ak or not sk:
-        print("Set KLING_ACCESS_KEY and KLING_SECRET_KEY first (see the header of this file).")
-        sys.exit(1)
     prompt = sys.argv[1] if len(sys.argv) > 1 else "a crowded outdoor spice market, highly detailed, photorealistic"
 
-    token = jwt_token(ak, sk)
+    token = auth_token()
     body = {"model_name": MODEL_NAME, "prompt": prompt, "n": 1, "aspect_ratio": "9:16"}
     body.update(WATERMARK_PAYLOAD)
     print(f"Submitting generation (model {MODEL_NAME}) with watermark enabled ...")
@@ -96,7 +104,7 @@ def main():
     # poll
     for _ in range(60):
         time.sleep(5)
-        token = jwt_token(ak, sk)
+        token = auth_token()
         q = api("GET", QUERY_PATH.format(task_id=task_id), token)
         data = q.get("data") or q
         status = (data.get("task_status") or data.get("status") or "").lower()
