@@ -29,6 +29,8 @@ Decided **before** evaluating the held-out set (dataset.md):
 | Neural decoders (earlier) | bit-agreement / marked-vs-clean separation T | agreement ≥ 0.8 **and** T ≥ 4 in both Kling groups | RivaGAN-marked synthetic images |
 | QIM lattice (earlier) | # Kling files flagged in the textured group | any flagged ⇒ not excluded | QIM-marked synthetic images |
 | Latent inversion / Tree-Ring (earlier) | ring-score p vs clean, one-sided | p < 0.01 ⇒ latent ring present | self-made Tree-Ring key, same model |
+| Large-scale averaging (#4) | cross-**batch** correlation of per-batch average residuals | consistent r > 0.3 across *different-content* batches | planted ±0.3 fixed pattern |
+| Blind-watermark decode (#5) | cross-**batch** bit-agreement, default password | > 0.55 across *different-content* batches | library embed→extract round-trip |
 
 A test's negative result is reported **only if its positive control passed** under the
 same settings.
@@ -44,6 +46,18 @@ positive control crossed it. Key numbers:
 - Neural decoders: Kling agreement 0.69–0.71 (threshold 0.80); control 0.95–0.97.
 - QIM: 0 Kling textured files flagged; controls heavily flagged.
 - Latent inversion: Kling p = 0.57 (threshold 0.01); control p = 0.0011.
+- **#4 averaging (331 images):** within-pool split-half r = 0.41 and an averaged residual 2.6–4.4× the noise floor *looked positive* — but the content control killed it: cross-batch correlation between different-content batches was round4×round5 = **−0.001** (and round3×round4 = +0.986, i.e. those two batches are near-duplicates). The apparent signal was duplicate/similar content, not a watermark.
+- **#5 blind-watermark decode:** Kling images agreed 0.64 vs 0.50 for non-Kling (Gemini, photos) *looked positive* — but cross-batch bit-agreement was round4×round5 = **0.49** and round4×fresh-session = **0.50**. The 0.64 was within-batch content similarity, not a shared message.
+
+### Content control: how two false positives were caught
+
+Both #4 and #5 first produced Kling-specific-looking signals. Both were artifacts of the
+sample containing **repeated prompts and near-duplicate batches**. The decisive control in
+each case was the same: **compare Kling images that share no content** (different prompt
+batches, and a fresh independent session). A real Kling-wide watermark must survive that;
+both signals dropped to the random baseline, so neither is a watermark. This is why the
+exclusion table below reports these as negatives, and why content-matched controls — not
+just "Kling vs non-Kling" — are required.
 
 ## What this excludes — and what it does not
 
@@ -56,8 +70,10 @@ positive control crossed it. Key numbers:
 | Public RivaGAN neural mark | **excluded** | below agreement threshold | only the public weights |
 | QIM lattice mark | **excluded** | 0 flagged, control flagged | — |
 | Tree-Ring latent mark, via a public model | **excluded** | p = 0.57 vs control 0.0011 | inversion used public SD 1.5, not Kling's model |
+| Weak **fixed** additive pattern (content-independent) | **excluded to ≈ ±0.24 levels** | #4 averaging 331 images, cross-batch control | only *fixed* marks; content-keyed not covered |
+| Message via `blind_watermark` (DWT-DCT-SVD, default password) | **excluded** | #5, cross-batch control (0.49) vs control round-trip | non-default password / variant scheme not covered |
 | **Content-keyed / learned mark** (e.g. Stable-Signature-style) | **not excluded** | needs Kling's private extractor | undetectable without the key/model |
-| **Sub-±1-level fixed mark** | **not excluded** | below C's floor | would not survive ordinary resave/compression |
+| **Sub-±0.24-level fixed mark** | **not excluded** | below #4's floor | would not survive ordinary resave/compression |
 
 **Honest conclusion.** No **independently detectable** invisible watermark was found in the
 tested IMAGE 3.0 samples (or video frames). This narrows possibility (1)/(3) strongly for the
@@ -76,6 +92,12 @@ docs/paid-credits-experiment-2026-10-12.md for the matrix.
 
 ## What would actually resolve possibility (1) and (2)
 
+- **The API differential (ready to run).** Kling's image API documents `watermark_info`;
+  with it enabled the task returns the plain image *and* a `watermark_url` (a watermarked
+  copy of the same generation). [`forensics/api_watermark_diff.py`](../forensics/api_watermark_diff.py)
+  generates one image, downloads both versions, and diffs them with the validated pair tool —
+  a clean with/without comparison from Kling itself, no guessing. It needs a Kling API key
+  (`KLING_ACCESS_KEY` / `KLING_SECRET_KEY`; API credits are separate from the website plan).
 - **Ground truth from Kling:** a technical description of the blind-watermark scheme, a
   working verification method, or confirmation of which models/routes carry it. This is the
   real unlock; negative experiments cannot substitute for it.

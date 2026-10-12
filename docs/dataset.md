@@ -45,6 +45,14 @@ stored locally outside the repo:
 | VIDEO 3.0 720p original | 1 | freshly generated (rainy-city), distinct scene |
 | Reused Kling videos | 2 | steam clip, Omni clip (from the local corpus) |
 
+## Data-hygiene note (found 2026-10-12)
+
+The `round3` and `round4` IMAGE 3.0 groups are **near-duplicate batches** (averaged-residual
+correlation r = 0.986), i.e. they largely contain the same generations. This matters: naive
+pooling of all samples inflates any "shared pattern" measurement with duplicate content. The
+#4/#5 analyses therefore report **cross-batch** results (e.g. round4 vs round5), which are the
+content-independent comparisons, and treat within-pool numbers as upper bounds only.
+
 ## Discovery vs validation
 
 To avoid tuning a detector to the same data it is evaluated on:
