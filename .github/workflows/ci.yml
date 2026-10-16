@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # The tests build their own fake PNG/MP4/JPEG files; no samples are needed.
+      - name: Run unit tests
+        run: python -m unittest -v
+      - name: Install and smoke-test the command
+        run: |
+          pip install .
+          kling-label --version
+          python -m kling_label --help
+
+  privacy-scan:
+    name: No images or real IDs in the pull request
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Checks every commit in the pull request, not only the final result.
+      - name: Scan the pull request commits
+        run: sh scripts/check_staged.sh "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"

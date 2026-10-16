@@ -104,9 +104,12 @@ docs/paid-credits-experiment-2026-10-12.md for the matrix.
 - **Ground truth from Kling:** a technical description of the blind-watermark scheme, a
   working verification method, or confirmation of which models/routes carry it. This is the
   real unlock; negative experiments cannot substitute for it.
+  *Update 2026-10-16:* Kling support wrote that the invisible image watermark is "temporarily
+  unsupported". That is a second-hand answer, not a technical description (FINDINGS.md §5).
 - **A genuine positive sample** with a documented way to verify it.
-- **Untested pipelines:** mobile-app output, edit/expand/upscale, JPEG/MOV exports, the
+- **Untested pipelines:** mobile-app output, upscale and multi-reference, JPEG exports, the
   mainland `可灵` service — each tested first for metadata preservation, then for a pixel signal.
+  (Inpaint/Expand and a MOV download were tested; see FINDINGS.md §8 and §9.)
 
 Until then, the repository states the detector gap as its primary finding and the
 watermark result as a bounded negative with explicit limits.
