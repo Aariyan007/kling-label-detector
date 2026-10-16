@@ -54,6 +54,10 @@ Shape: `SGP_PROD_ai_web_` + 15 digits.
 created_utc = 1468028519 + floor(digits / 1_000_000)
 ```
 
+> **Kling support disagrees on the wording (reply to the author's email, recorded 2026-10-15).** Kling support wrote that "the 15-digit payload contained in ProduceID/PropagateID does not include an exact timestamp." This does not match our measurements above: the decoded time fell inside the measured click window for 6 of 6 timed samples (2026-10-09), and the seconds field rises 1.056 units per second. We keep the finding, but it is best worded as **a time-derived counter that tracks the request time to about 1 second** (a custom epoch, not a Unix timestamp). The support answer is a short, non-technical reply, so it may mean "not a standard timestamp field". It is **not** a measurement. Cheap re-check: make one new image, note the clock time at the click, and run `kling-label` on it. If the decoded time is no longer within about 1 s, the scheme has changed.
+>
+> **Re-check from the repo, no new sample (2026-10-16).** The first four digits of an ID already place it on the calendar (1 unit of the seconds field = 1 s, so one prefix step = 27.8 h). The paid-plan batch of 2026-10-12 (generated 2026-10-11 to 10-12 per docs/dataset.md) has IDs starting `3237…`, which decodes to 2026-10-11 14:21 to 10-12 18:08 UTC: the right days. The earliest corpus (collected 2026-10-08 to 10-09; the old hygiene scan assumed prefix `3234`) decodes to 2026-10-08 03:01 to 10-09 06:48 UTC. The 2026-10-12 batch was not used to fit the epoch, so this tests the counter against the calendar over 3 days: it follows real time at about one unit per second, to within roughly 15%. That rules out a plain request counter. It does **not** re-measure the 1 s accuracy, which still rests on the 6 timed samples and the millisecond rollover. Only a fresh timed sample can do that.
+
 The download URL served by Kling also embeds the `ProduceID` in base64, followed by further digits that were not analyzed.
 
 ## 4. Two formats of `ContentProducer`
@@ -73,6 +77,8 @@ The 18-character middle part passes the check-digit algorithm of the Chinese **U
 ## 5. Pixel watermark: none found by our tests, but officially claimed (resolved in §9, 2026-10-12)
 
 > **Update (2026-10-12):** paid-plan experiments (§9) strengthen this. A with/without-logo pixel diff and validated baked-in fixed-pattern tests (images and video) point the same way: **no independently detectable invisible watermark in the tested IMAGE 3.0 samples** — though these tests exclude *fixed / shared* marks, not a content-keyed or private-model mark, and Kling's own blind-watermark check is non-functional, so absence is not proven. The section below is the original 2026-10-09 evidence.
+
+> **Update (Kling support reply, recorded 2026-10-15):** in reply to the author's inquiry, and "based on feedback from our relevant team", Kling support wrote: "Invisible image watermark: This feature is temporarily unsupported at the moment." This fits what we measured: the `BLIND_WATERMARK` check never returned a result, and no pixel test found a mark. It also means the public claim on kling.ai/docs/ai-content-detection (an imperceptible watermark in images and videos, retrieved 2026-10-09) does not describe the product today, at least for images. **Limits:** it is a second-hand support answer without technical detail; "this feature" could mean only the detector; it says nothing about video. So read it as *consistent with* "no invisible watermark in images today", not as proof.
 
 
 Full method and numbers are in [notes/2026-10-09-pixel-spike.md](notes/2026-10-09-pixel-spike.md). Summary:
