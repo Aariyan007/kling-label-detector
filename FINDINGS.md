@@ -163,9 +163,10 @@ Run on a paid Standard plan (IMAGE 3.0, 2K HD), driving the real web app. Detect
 ## 10. Not yet tested
 
 - Kling mobile app output (does the client field read something other than `ai_web`?)
-- The mainland-China service (可灵), and JPEG or MOV downloads (paid watermark-free downloads were tested; see §9)
-- Whether `ContentProducer` changes for other features (edit, expand, upscale, multi-reference)
+- The mainland-China service (可灵), and JPEG downloads from Kling (paid watermark-free downloads were tested, see §9; a MOV download was tested, see §8)
+- Whether `ContentProducer` changes for upscale and multi-reference (Inpaint and Expand were tested: the producer becomes `kling`, see §9)
 - Whether the worker pools (300s vs 500s) map to data centres or service types
+- A fresh timed sample to re-check that decoded creation times are still within about 1 s (see the notes in §3)
 
 ## 11. Ethics
 

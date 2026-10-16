@@ -4,6 +4,21 @@ Reverse-engineering the hidden "AI-generated" label that Kling AI puts in its im
 
 Status: **research findings published, `kling-label` v0.1 ready.** The detailed write-up is in [FINDINGS.md](FINDINGS.md).
 
+## Results at a glance
+
+Everything here is detection only, from the author's own Kling generations. Details and limits are in [FINDINGS.md](FINDINGS.md).
+
+| Question | Answer | How sure |
+|----------|--------|----------|
+| Where is the hidden label? | A PNG `tEXt` chunk named `AIGC`, or an MP4 metadata key named `AIGC`. It holds the GB 45438-2025 fields as JSON. | **Confirmed.** `kling-label` read it in 36 of 36 Kling PNGs and in a VIDEO 3.0 MP4, with 0 false alarms on 49 non-Kling files. One Omni MOV download has no `AIGC` key. |
+| Does the ID show when a file was made? | Yes, to about 1 second. The ID belongs to the request, so two images from one request share it. | **Strong evidence.** 6 timed samples all fell inside their click window, and IDs from three days apart decode to the right days. Kling support says the payload "does not include an exact timestamp", which does not match our data. A fresh timed sample is still to do. |
+| Is there an invisible pixel watermark? | None found. | **Not proven absent.** Our tests (most with a planted positive control) rule out shared fixed patterns, SynthID (1 image checked), TrustMark, Watermark Anything, the open DWT-DCT-SVD "blind watermark" family and a generation-time latent mark seen through a public model. A mark that depends on the picture, or that needs Kling's private model, is not ruled out. Kling support says the image watermark is "temporarily unsupported", while Kling's docs claim one. |
+| Does Kling's own detector work? | Only partly. | **Confirmed.** Its metadata check reads producer `kling` but misses IMAGE 3.0 labels. Its invisible-watermark check says `Failed` on every file, so it tells us nothing either way. |
+| Which model writes which producer? | IMAGE 2.1 and VIDEO 3.0 write `kling`. IMAGE 3.0 writes `0011` + the company code of Beijing Kuaishou Technology + `10100`. Edit and expand outputs switch to `kling`. | **Confirmed** (one account made both forms). The company code was matched to Kuaishou through public registry listings. |
+| Is there a video marker? | An H.264 `kling-ai` marker inside the video stream. | **Confirmed** in 2 of 2 videos made after the rules, absent in the 2025 video. |
+
+**Still open:** mobile-app output (`ai_app`?), upscale and multi-reference outputs, the mainland-China service, what the 3-digit worker number means, a fresh timed sample for the 1 s claim, and whether videos carry a pixel watermark (Kling support only answered for images).
+
 ## Install
 
 Needs Python 3.10 or newer. No other packages.
@@ -64,7 +79,7 @@ The tool only reads files. It never changes them.
 python -m unittest
 ```
 
-The tests build their own fake PNG, MP4 and JPEG files in memory with made-up IDs. No sample files are needed.
+The tests build their own fake PNG, MP4 and JPEG files in memory with made-up IDs. No sample files are needed. GitHub Actions runs them on every pull request (Python 3.10 and 3.13), together with `scripts/check_staged.sh`, which fails a pull request that adds an image, a video or a real-looking `ProduceID`. Run the same scan before a commit with `sh scripts/check_staged.sh`.
 
 ## Background
 
@@ -99,4 +114,6 @@ See [FINDINGS.md](FINDINGS.md) for method, evidence and limits, [docs/methodolog
 - [x] Decode the `ProduceID` time field
 - [x] `kling-label` command-line tool (reads a file, reports the label and decoded fields)
 - [x] Video (MP4) label location
+- [x] Tests and privacy scan run on every pull request (GitHub Actions)
 - [ ] Mobile-app samples
+- [ ] Fresh timed sample (re-check the 1 s claim)
