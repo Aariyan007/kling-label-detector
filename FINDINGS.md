@@ -48,7 +48,7 @@ Shape: `SGP_PROD_ai_web_` + 15 digits.
   - **Worker (hypothesis):** the middle 3 digits differ for every image in a batch and took only values 300 to 318 and 500 to 527. Two pools of about 20 workers each fit this. The pool was not tied to model or account.
   - So the full creation time is `seconds.milliseconds`. With up to 2 s of server delay allowed after each click, the counter start lies between 2016-07-09 01:41:58.07 and 01:42:00.52 UTC (01:41:58.07 to 01:41:58.52 if there is no delay). Decoded times are accurate to about 1 second.
 
-**Consequence:** anyone holding an original Kling file can read when it was generated, to the second:
+**Consequence:** anyone holding an original Kling file can read when it was generated, to about a second:
 
 ```
 created_utc = 1468028519 + floor(digits / 1_000_000)
